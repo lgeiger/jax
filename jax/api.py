@@ -41,7 +41,7 @@ from . import lib
 from . import linear_util as lu
 from . import ad_util
 from . import dtypes
-from .core import eval_jaxpr, checking_leaks
+from .core import eval_jaxpr
 from .api_util import (flatten_fun, apply_flat_fun, flatten_fun_nokwargs,
                        flatten_fun_nokwargs2, argnums_partial,
                        argnums_partial_except, flatten_axes, donation_vector,
@@ -363,7 +363,7 @@ def _cpp_jit(
                         "dynamic", None)
 
     # TODO(jblespiau): Move this to C++.
-    if (FLAGS.jax_debug_nans or FLAGS.jax_debug_infs) and not _jit_is_disabled():
+    if (config.jax_debug_nans or config.jax_debug_infs) and not _jit_is_disabled():
       device_arrays = cpp_jitted_f(context, *args, **kwargs)
       try:
         xla.check_special(xla.xla_call_p, [
@@ -373,7 +373,7 @@ def _cpp_jit(
         ])
         return device_arrays
       except FloatingPointError:
-        assert FLAGS.jax_debug_nans or FLAGS.jax_debug_infs  # compiled_fun can only raise in this case
+        assert config.jax_debug_nans or config.jax_debug_infs  # compiled_fun can only raise in this case
         print("Invalid nan value encountered in the output of a C++-jit "
               "function. Calling the de-optimized version.")
         return cache_miss(context, *args, **kwargs)[0]  # probably won't return
