@@ -159,13 +159,13 @@ class Config:
         disabler()
       self.omnistaging_enabled = False
 
-  # TODO(jakevdp, mattjj): unify this with `define_bool_state` stuff below
-  @property
-  def x64_enabled(self):
-    return lib.jax_jit.get_enable_x64()
+#   # TODO(jakevdp, mattjj): unify this with `define_bool_state` stuff below
+#   @property
+#   def x64_enabled(self):
+#     return lib.jax_jit.get_enable_x64()
 
-  def _set_x64_enabled(self, state):
-    lib.jax_jit.thread_local_state().enable_x64 = bool(state)
+#   def _set_x64_enabled(self, state):
+#     lib.jax_jit.thread_local_state().enable_x64 = bool(state)
 
   def define_bool_state(self, name: str, default: bool, help: str):
     """Set up thread-local state and return a contextmanager for managing it.
@@ -289,7 +289,6 @@ check_tracer_leaks = config.define_bool_state(
     default=False,
     help=('Turn on checking for leaked tracers as soon as a trace completes. '
           'Enabling leak checking may have performance impacts: some caching '
-
           'is disabled, and other overheads may be added.'))
 checking_leaks = functools.partial(check_tracer_leaks, True)
 
@@ -316,3 +315,30 @@ log_compiles = config.define_bool_state(
           'computation. Logging is performed with `absl.logging`. When this '
           'option is set, the log level is WARNING; otherwise the level is '
           'DEBUG.'))
+
+# Because jax_enable_x64 is managed by C++ code, we don't reuse the
+# config.define_bool_state mechanism, though conceptually it is the same.
+config.DEFINE_bool('jax_enable_x64', bool_env('JAX_ENABLE_X64', False),
+                   help='Enable 64-bit types to be used')
+lib.jax_jit.global_state().enable_x64 = bool_env('JAX_ENABLE_X64', False)
+
+@contextlib.contextmanager
+def enable_x64(new_val: bool = True):
+  """Experimental context manager to temporarily enable X64 mode.
+
+  Usage::
+
+    >>> import jax.numpy as jnp
+    >>> with enable_x64(True):
+    ...   print(jnp.arange(10.0).dtype)
+    ...
+    float64
+  """
+  prev_val = config.jax_enable_x64
+  lib.jax_jit.thread_local_state().enable_x64 = bool(new_val)
+  try:
+    yield
+  finally:
+    lib.jax_jit.thread_local_state().enable_x64 = prev_val
+Config.jax_enable_x64 = property(lambda self: lib.jax_jit.get_enable_x64())
+config._contextmanager_flags.add('jax_enable_x64')

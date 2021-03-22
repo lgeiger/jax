@@ -36,11 +36,6 @@ from ._src import traceback_util
 traceback_util.register_exclusion(__file__)
 
 FLAGS = flags.FLAGS
-flags.DEFINE_bool('jax_enable_x64',
-                  strtobool(os.getenv('JAX_ENABLE_X64', 'False')),
-                  'Enable 64-bit types to be used.')
-lib.jax_jit.global_state().enable_x64 = strtobool(
-    os.getenv('JAX_ENABLE_X64', 'False'))
 
 # bfloat16 support
 bfloat16: type = xla_client.bfloat16
