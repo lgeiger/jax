@@ -74,6 +74,7 @@ class NNFunctionsTest(jtu.JaxTestCase):
     rtol = 1e-2 if jtu.device_under_test() == "tpu" else None
     check_grads(nn.relu, (1.,), order=3, rtol=rtol)
     check_grads(nn.relu, (-1.,), order=3, rtol=rtol)
+    check_grads(lambda x: nn.relu(jnp.sqrt(x)), (-1.,), order=1, rtol=rtol)
     jaxpr = jax.make_jaxpr(jax.grad(nn.relu))(0.)
     self.assertGreaterEqual(len(jaxpr.jaxpr.eqns), 2)
 
